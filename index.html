@@ -229,7 +229,30 @@ function setSyncIndicator(saving) {
   input[type=checkbox]{width:auto!important;accent-color:var(--amber);cursor:pointer}
   .tip-box{background:#FFFBF0;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--muted);line-height:1.6}
 
-  @media(max-width:480px){.main{padding:12px}.header{padding:12px 12px 0}}
+  /* CALENDAR */
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .cal-month-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--amber-dark)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px}
+  .cal-dow{text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;text-transform:uppercase;letter-spacing:.5px}
+  .cal-day{min-height:64px;border-radius:10px;border:1.5px solid var(--border);background:white;padding:4px;cursor:pointer;transition:all .15s;position:relative}
+  .cal-day:hover{border-color:var(--amber);background:var(--amber-light)}
+  .cal-day.today{border-color:var(--amber);background:#FEF9EC;box-shadow:0 0 0 2px rgba(245,158,11,.25)}
+  .cal-day.other-month{background:#FAFAFA;opacity:.5}
+  .cal-day.selected{border-color:var(--orange);background:#FFF0E6;box-shadow:0 0 0 2px rgba(234,88,12,.2)}
+  .cal-day-num{font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px}
+  .cal-day.today .cal-day-num{color:var(--orange)}
+  .cal-event-dot{font-size:10px;line-height:1.3;border-radius:4px;padding:1px 3px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:white;font-weight:700}
+  .cal-event-more{font-size:9px;color:var(--muted);font-weight:700}
+  .event-list-item{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-bottom:1px solid #FEF3C7;transition:background .15s}
+  .event-list-item:last-child{border-bottom:none}
+  .event-list-item:hover{background:#FFFBF0}
+  .event-color-bar{width:4px;border-radius:99px;flex-shrink:0;align-self:stretch;min-height:36px}
+  .event-info{flex:1;min-width:0}
+  .event-title{font-weight:700;font-size:14px;color:var(--text)}
+  .event-meta{font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+  .event-tag{display:inline-flex;align-items:center;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:700;color:white}
+
+  @media(max-width:480px){.main{padding:12px}.header{padding:12px 12px 0}.cal-day{min-height:48px}}
 </style>
 </head>
 <body>
@@ -259,6 +282,7 @@ function setSyncIndicator(saving) {
   </div>
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('chores')">🧹 Chores</button>
+    <button class="tab-btn" onclick="switchTab('calendar')">📅 Calendar</button>
     <button class="tab-btn" onclick="switchTab('weekly')">🛒 Weekly</button>
     <button class="tab-btn" onclick="switchTab('monthly')">📦 Stock</button>
     <button class="tab-btn" onclick="switchTab('settings')">⚙️ Household</button>
@@ -266,6 +290,50 @@ function setSyncIndicator(saving) {
 </div>
 
 <div class="main">
+
+  <!-- ====== CALENDAR ====== -->
+  <div id="tab-calendar" class="section">
+    <div class="cal-nav">
+      <button class="btn btn-secondary btn-sm" onclick="calPrevMonth()">◀ Prev</button>
+      <span class="cal-month-title" id="cal-month-label"></span>
+      <button class="btn btn-secondary btn-sm" onclick="calNextMonth()">Next ▶</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span id="cal-selected-label" style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:var(--amber-dark)">Select a day to add events</span>
+      <button class="btn btn-primary btn-sm" id="cal-add-btn" onclick="toggleCollapse('add-event-form')" style="display:none">＋ Add Event</button>
+    </div>
+    <div id="add-event-form" class="collapsible card card-body" style="margin-bottom:14px">
+      <div class="section-label">New Event</div>
+      <div class="input-row" style="margin-bottom:8px">
+        <input type="text" id="event-title" placeholder="Event name…" onkeydown="if(event.key==='Enter')addCalEvent()"/>
+        <select id="event-member"><option value="">Everyone</option></select>
+      </div>
+      <div class="input-row" style="margin-bottom:8px">
+        <input type="text" id="event-time" placeholder="Time (e.g. 3:00 PM — optional)"/>
+        <select id="event-category">
+          <option value="general">📌 General</option>
+          <option value="appointment">🏥 Appointment</option>
+          <option value="school">🎒 School</option>
+          <option value="activity">⚽ Activity</option>
+          <option value="work">💼 Work</option>
+          <option value="social">🎉 Social</option>
+          <option value="travel">✈️ Travel</option>
+          <option value="reminder">⏰ Reminder</option>
+        </select>
+      </div>
+      <input type="text" id="event-note" placeholder="Notes (optional)…" style="margin-bottom:10px"/>
+      <div class="input-row">
+        <button class="btn btn-primary" onclick="addCalEvent()">Add Event</button>
+        <button class="btn btn-ghost" onclick="toggleCollapse('add-event-form')">Cancel</button>
+      </div>
+    </div>
+    <div id="cal-day-events"></div>
+    <div class="card" style="margin-top:4px">
+      <div class="card-header amber">📅 Upcoming Events <span class="badge badge-amber" id="upcoming-count">0</span></div>
+      <div id="cal-upcoming"></div>
+    </div>
+  </div>
 
   <!-- ====== CHORES ====== -->
   <div id="tab-chores" class="section active">
@@ -371,6 +439,17 @@ function setSyncIndicator(saving) {
 
 </div><!-- /main -->
 
+<!-- EVENT DETAIL MODAL -->
+<div class="modal-overlay" id="event-detail-modal">
+  <div class="modal">
+    <div class="modal-title" id="event-detail-title"></div>
+    <div class="modal-sub" id="event-detail-meta"></div>
+    <div id="event-detail-note" style="font-size:13px;color:var(--text);margin-bottom:16px;display:none"></div>
+    <button class="btn btn-danger" style="width:100%;justify-content:center" onclick="deleteCalEvent()">🗑 Delete Event</button>
+    <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="closeEventDetailModal()">Close</button>
+  </div>
+</div>
+
 <!-- STAR MODAL -->
 <div class="modal-overlay" id="star-modal">
   <div class="modal">
@@ -416,6 +495,17 @@ const DEFAULT_MEMBERS = [
   {id:3,name:"Alex",avatar:"🧒"},{id:4,name:"Sam",avatar:"👧"}
 ];
 
+const EVENT_CATS = {
+  general:     {label:"General",    emoji:"📌", color:"#6B7280"},
+  appointment: {label:"Appt",       emoji:"🏥", color:"#EF4444"},
+  school:      {label:"School",     emoji:"🎒", color:"#3B82F6"},
+  activity:    {label:"Activity",   emoji:"⚽", color:"#10B981"},
+  work:        {label:"Work",       emoji:"💼", color:"#8B5CF6"},
+  social:      {label:"Social",     emoji:"🎉", color:"#F59E0B"},
+  travel:      {label:"Travel",     emoji:"✈️", color:"#06B6D4"},
+  reminder:    {label:"Reminder",   emoji:"⏰", color:"#F97316"},
+};
+
 // ============================================================
 // STATE
 // ============================================================
@@ -423,13 +513,20 @@ let state = {
   members: DEFAULT_MEMBERS,
   chores: [], grocery: {}, activeStore: STORES[0],
   spending: [], priceHistory: {}, monthly: [],
+  calEvents: [],
 };
 
 let starTargetId = null;
 let editMemberId = null;
 let editMemberAvatar = ALL_AVATARS[0];
 let newMemberAvatar = ALL_AVATARS[0];
-let _suppressRemoteUpdate = false; // prevent echo after local save
+let _suppressRemoteUpdate = false;
+
+// Calendar UI state (not synced — local only)
+let calYear  = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-indexed
+let calSelectedDate = null; // "YYYY-MM-DD"
+let eventDetailId = null;
 
 // ============================================================
 // FIREBASE BRIDGE
@@ -504,6 +601,7 @@ function renderAll() {
   renderSpending();
   renderMonthly();
   renderStarGrid();
+  renderCalendar();
   renderAvatarGrid('new-member-avatar-grid', newMemberAvatar, 'selectNewAvatar');
   const settingsOpen = document.getElementById('tab-settings').classList.contains('active');
   if (settingsOpen) renderSettingsTab();
@@ -516,12 +614,11 @@ function switchTab(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  const map = {chores:'chore',weekly:'weekly',monthly:'stock',settings:'household'};
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    if (b.textContent.toLowerCase().includes(map[name])) b.classList.add('active');
-  });
+  const idx = ['chores','calendar','weekly','monthly','settings'].indexOf(name);
+  document.querySelectorAll('.tab-btn')[idx]?.classList.add('active');
   if (name === 'weekly')   { renderStoreTabs(); renderGroceryList(); }
   if (name === 'settings') renderSettingsTab();
+  if (name === 'calendar') renderCalendar();
 }
 
 function toggleCollapse(id) { document.getElementById(id).classList.toggle('open'); }
@@ -538,11 +635,14 @@ function updateHeader() {
 // MEMBER SELECTS
 // ============================================================
 function populateMemberSelects() {
-  ['chore-assignee','reminder-name'].forEach(id => {
+  ['chore-assignee','reminder-name','event-member'].forEach(id => {
     const el = document.getElementById(id); if (!el) return;
     const prev = el.value;
     const isReminder = id === 'reminder-name';
-    el.innerHTML = isReminder ? '<option value="">Send Reminder To…</option>' : '';
+    const isEvent    = id === 'event-member';
+    el.innerHTML = isReminder ? '<option value="">Send Reminder To…</option>'
+                 : isEvent    ? '<option value="">Everyone</option>'
+                 : '';
     state.members.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m.name; opt.textContent = m.avatar + ' ' + m.name;
@@ -841,6 +941,156 @@ function renderMonthly(){
     html+='</div></div>';
   });
   el.innerHTML=html;
+}
+
+// ============================================================
+// CALENDAR
+// ============================================================
+const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function calKey(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function todayKey(){const n=new Date();return calKey(n.getFullYear(),n.getMonth(),n.getDate());}
+function calPrevMonth(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+function calNextMonth(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();}
+
+function selectCalDay(dateKey){
+  calSelectedDate=dateKey;
+  document.getElementById('cal-add-btn').style.display='';
+  const d=new Date(dateKey+'T00:00:00');
+  document.getElementById('cal-selected-label').textContent=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  renderCalendar();renderDayEvents();
+  document.getElementById('add-event-form').classList.remove('open');
+}
+
+function addCalEvent(){
+  const title=document.getElementById('event-title').value.trim();if(!title)return;
+  if(!calSelectedDate){showToast('Please select a day first');return;}
+  const cat=document.getElementById('event-category').value;
+  const member=document.getElementById('event-member').value;
+  const time=document.getElementById('event-time').value.trim();
+  const note=document.getElementById('event-note').value.trim();
+  if(!state.calEvents)state.calEvents=[];
+  state.calEvents.push({id:Date.now(),date:calSelectedDate,title,cat,member,time,note});
+  document.getElementById('event-title').value='';
+  document.getElementById('event-time').value='';
+  document.getElementById('event-note').value='';
+  document.getElementById('event-category').value='general';
+  document.getElementById('event-member').value='';
+  document.getElementById('add-event-form').classList.remove('open');
+  saveToFirebase();renderCalendar();renderDayEvents();renderUpcoming();
+  showToast('📅 Event added!');
+}
+
+function openEventDetail(id){
+  const ev=(state.calEvents||[]).find(e=>e.id===id);if(!ev)return;
+  eventDetailId=id;
+  const cat=EVENT_CATS[ev.cat]||EVENT_CATS.general;
+  const m=state.members.find(x=>x.name===ev.member);
+  document.getElementById('event-detail-title').textContent=cat.emoji+' '+ev.title;
+  const d=new Date(ev.date+'T00:00:00');
+  const dateStr=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  let meta=dateStr;
+  if(ev.time)meta+='  ·  '+ev.time;
+  if(ev.member)meta+='  ·  '+(m?m.avatar+' ':'')+ev.member;
+  meta+='  ·  '+cat.label;
+  document.getElementById('event-detail-meta').textContent=meta;
+  const noteEl=document.getElementById('event-detail-note');
+  if(ev.note){noteEl.textContent=ev.note;noteEl.style.display='';}else noteEl.style.display='none';
+  document.getElementById('event-detail-modal').classList.add('open');
+}
+function closeEventDetailModal(){document.getElementById('event-detail-modal').classList.remove('open');eventDetailId=null;}
+function deleteCalEvent(){
+  if(!eventDetailId)return;
+  state.calEvents=(state.calEvents||[]).filter(e=>e.id!==eventDetailId);
+  closeEventDetailModal();
+  saveToFirebase();renderCalendar();renderDayEvents();renderUpcoming();
+  showToast('🗑 Event deleted');
+}
+
+function renderCalendar(){
+  if(!state.calEvents)state.calEvents=[];
+  document.getElementById('cal-month-label').textContent=MONTH_NAMES[calMonth]+' '+calYear;
+  const byDate={};
+  state.calEvents.forEach(e=>{(byDate[e.date]||(byDate[e.date]=[])).push(e);});
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  const today=todayKey();
+  let html=DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=firstDay-1;i>=0;i--){
+    html+=`<div class="cal-day other-month"><div class="cal-day-num">${daysInPrev-i}</div></div>`;
+  }
+  for(let d=1;d<=daysInMonth;d++){
+    const k=calKey(calYear,calMonth,d);
+    const evs=byDate[k]||[];
+    const isToday=k===today,isSel=k===calSelectedDate;
+    let cls='cal-day';if(isToday)cls+=' today';if(isSel)cls+=' selected';
+    let dotsHtml='';
+    evs.slice(0,2).forEach(e=>{
+      const c=EVENT_CATS[e.cat]||EVENT_CATS.general;
+      dotsHtml+=`<div class="cal-event-dot" style="background:${c.color}">${c.emoji} ${e.title}</div>`;
+    });
+    if(evs.length>2)dotsHtml+=`<div class="cal-event-more">+${evs.length-2} more</div>`;
+    html+=`<div class="${cls}" onclick="selectCalDay('${k}')"><div class="cal-day-num">${d}</div>${dotsHtml}</div>`;
+  }
+  const trailing=(firstDay+daysInMonth)%7===0?0:7-(firstDay+daysInMonth)%7;
+  for(let d=1;d<=trailing;d++)html+=`<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
+  document.getElementById('cal-grid').innerHTML=html;
+  renderUpcoming();
+}
+
+function renderDayEvents(){
+  const el=document.getElementById('cal-day-events');if(!el)return;
+  if(!calSelectedDate){el.innerHTML='';return;}
+  const evs=(state.calEvents||[]).filter(e=>e.date===calSelectedDate).sort((a,b)=>a.time.localeCompare(b.time));
+  if(!evs.length){el.innerHTML=`<div class="card card-body" style="margin-bottom:14px;text-align:center;color:var(--muted);font-size:13px">No events this day — tap ＋ Add Event!</div>`;return;}
+  let html=`<div class="card" style="margin-bottom:14px"><div class="card-header green">📋 Events This Day <span class="badge badge-green">${evs.length}</span></div><div>`;
+  evs.forEach(e=>{
+    const cat=EVENT_CATS[e.cat]||EVENT_CATS.general;
+    const m=state.members.find(x=>x.name===e.member);
+    html+=`<div class="event-list-item" onclick="openEventDetail(${e.id})" style="cursor:pointer">
+      <div class="event-color-bar" style="background:${cat.color}"></div>
+      <div class="event-info">
+        <div class="event-title">${e.title}</div>
+        <div class="event-meta">
+          ${e.time?`<span>🕐 ${e.time}</span>`:''}
+          <span>${cat.emoji} ${cat.label}</span>
+          ${e.member?`<span>${m?m.avatar+' ':''} ${e.member}</span>`:'<span>👥 Everyone</span>'}
+        </div>
+        ${e.note?`<div style="font-size:11px;color:var(--muted);margin-top:3px">${e.note}</div>`:''}
+      </div>
+      <span style="font-size:11px;color:var(--muted)">›</span>
+    </div>`;
+  });
+  el.innerHTML=html+'</div></div>';
+}
+
+function renderUpcoming(){
+  const el=document.getElementById('cal-upcoming');if(!el)return;
+  const today=todayKey();
+  const upcoming=(state.calEvents||[]).filter(e=>e.date>=today).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).slice(0,10);
+  document.getElementById('upcoming-count').textContent=upcoming.length;
+  if(!upcoming.length){el.innerHTML=`<div class="empty" style="padding:24px"><div class="empty-icon" style="font-size:32px">📅</div><div class="empty-text" style="font-size:13px">No upcoming events</div></div>`;return;}
+  let lastDate='',html='<div>';
+  upcoming.forEach(e=>{
+    const cat=EVENT_CATS[e.cat]||EVENT_CATS.general;
+    const m=state.members.find(x=>x.name===e.member);
+    const d=new Date(e.date+'T00:00:00');
+    const dateStr=e.date===today?'Today':d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    if(dateStr!==lastDate){
+      html+=`<div style="padding:6px 14px 2px;font-size:10px;font-weight:700;color:var(--amber-dark);text-transform:uppercase;letter-spacing:1px;background:var(--amber-light)">${dateStr}</div>`;
+      lastDate=dateStr;
+    }
+    html+=`<div class="event-list-item" onclick="openEventDetail(${e.id})" style="cursor:pointer">
+      <div class="event-color-bar" style="background:${cat.color}"></div>
+      <div class="event-info">
+        <div class="event-title">${cat.emoji} ${e.title}</div>
+        <div class="event-meta">${e.time?`<span>🕐 ${e.time}</span>`:''} ${e.member?`<span>${m?m.avatar+' ':''} ${e.member}</span>`:'<span>👥 Everyone</span>'}</div>
+      </div>
+      <span style="font-size:11px;color:var(--muted)">›</span>
+    </div>`;
+  });
+  el.innerHTML=html+'</div>';
 }
 </script>
 </body>
