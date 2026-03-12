@@ -333,6 +333,112 @@ function setSyncIndicator(saving) {
       <div class="card-header amber">📅 Upcoming Events <span class="badge badge-amber" id="upcoming-count">0</span></div>
       <div id="cal-upcoming"></div>
     </div>
+
+    <!-- IMPORT PANEL -->
+    <div class="card" style="margin-top:4px">
+      <div class="card-header" style="background:linear-gradient(90deg,#1A56DB,#0E9F6E);cursor:pointer" onclick="toggleCollapse('import-panel')">
+        📥 Import from Other Calendars
+        <span style="margin-left:auto;font-size:12px;opacity:.8">▼</span>
+      </div>
+      <div id="import-panel" class="collapsible">
+        <div class="card-body">
+
+          <!-- APPLE / ICS -->
+          <div style="margin-bottom:18px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:22px">🍎</span>
+              <div>
+                <div style="font-weight:700;font-size:14px;color:var(--text)">Apple Calendar</div>
+                <div style="font-size:11px;color:var(--muted)">Export a .ics file from your iPhone and upload it here</div>
+              </div>
+            </div>
+            <div style="background:var(--amber-light);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--amber-dark);margin-bottom:10px;line-height:1.6">
+              <strong>How to export from iPhone:</strong> Open Calendar app → tap a calendar name → scroll down → tap "Export Calendar" → share the .ics file here
+            </div>
+            <label class="btn btn-secondary" style="cursor:pointer;display:inline-flex">
+              📂 Choose .ics File
+              <input type="file" accept=".ics" id="ics-file-input" style="display:none" onchange="importICS(this)">
+            </label>
+            <span id="ics-status" style="font-size:12px;color:var(--muted);margin-left:10px"></span>
+          </div>
+
+          <hr style="border:none;border-top:1px solid var(--border);margin-bottom:18px">
+
+          <!-- GOOGLE CALENDAR -->
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:22px">📅</span>
+              <div>
+                <div style="font-weight:700;font-size:14px;color:var(--text)">Google Calendar</div>
+                <div style="font-size:11px;color:var(--muted)">Sign in with Google to import your upcoming events</div>
+              </div>
+            </div>
+            <div id="google-signin-area">
+              <div id="g-signin-btn-wrap">
+                <div id="g_id_onload"
+                  data-client_id="PASTE_YOUR_GOOGLE_CLIENT_ID_HERE"
+                  data-callback="onGoogleSignIn"
+                  data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                  data-type="standard"
+                  data-size="large"
+                  data-theme="outline"
+                  data-text="signin_with"
+                  data-shape="rectangular"
+                  data-logo_alignment="left">
+                </div>
+              </div>
+              <div id="google-signed-in" style="display:none">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                  <img id="google-avatar" style="width:30px;height:30px;border-radius:50%" src="">
+                  <span id="google-user-name" style="font-size:13px;font-weight:700;color:var(--text)"></span>
+                  <button class="btn btn-ghost btn-sm" onclick="googleSignOut()" style="margin-left:auto">Sign Out</button>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn btn-primary btn-sm" onclick="openWhoSyncingModal()">🔄 Import Events</button>
+                  <select id="google-days-select" style="flex:0;width:auto;font-size:12px;padding:5px 10px">
+                    <option value="30">Next 30 days</option>
+                    <option value="60">Next 60 days</option>
+                    <option value="90">Next 90 days</option>
+                    <option value="180">Next 6 months</option>
+                  </select>
+                </div>
+                <div id="google-import-status" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
+              </div>
+              <div id="google-setup-note" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:#1E40AF;margin-top:10px;line-height:1.6">
+                <strong>⚙️ One-time setup required:</strong> To enable Google sign-in, you need a free Google OAuth Client ID. <a href="#" onclick="showGoogleSetup();return false;" style="color:#1D4ED8;font-weight:700">Tap here for setup instructions</a>.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- GOOGLE SETUP MODAL -->
+    <div class="modal-overlay" id="google-setup-modal">
+      <div class="modal" style="max-width:420px">
+        <div class="modal-title">⚙️ Google Calendar Setup</div>
+        <div class="modal-sub">One-time free setup — takes about 5 minutes</div>
+        <div style="font-size:13px;line-height:1.8;color:var(--text)">
+          <strong>Step 1.</strong> Go to <a href="https://console.cloud.google.com" target="_blank" style="color:var(--amber-dark)">console.cloud.google.com</a><br>
+          <strong>Step 2.</strong> Create a new project (e.g. "Home Manager")<br>
+          <strong>Step 3.</strong> APIs & Services → Enable APIs → enable <em>Google Calendar API</em><br>
+          <strong>Step 4.</strong> APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID<br>
+          <strong>Step 5.</strong> Application type: <em>Web application</em><br>
+          <strong>Step 6.</strong> Authorized JS origins: add your GitHub Pages URL<br>
+          <strong>Step 7.</strong> Copy the Client ID it gives you<br>
+          <strong>Step 8.</strong> Paste it below and tap Save
+        </div>
+        <input type="text" id="google-client-id-input" placeholder="Paste Client ID here…" style="margin-top:14px;margin-bottom:10px"/>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="saveGoogleClientId()" style="flex:1;justify-content:center">Save & Enable</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('google-setup-modal').classList.remove('open')" style="flex:1;justify-content:center">Cancel</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ====== CHORES ====== -->
@@ -416,6 +522,7 @@ function setSyncIndicator(saving) {
 
   <!-- ====== SETTINGS ====== -->
   <div id="tab-settings" class="section">
+
     <div class="card card-body" style="margin-bottom:14px">
       <div class="section-label">Add Household Member</div>
       <div class="input-row" style="margin-bottom:10px">
@@ -438,6 +545,16 @@ function setSyncIndicator(saving) {
   </div>
 
 </div><!-- /main -->
+
+<!-- WHO IS SYNCING MODAL -->
+<div class="modal-overlay" id="who-syncing-modal">
+  <div class="modal">
+    <div class="modal-title">👤 Who is syncing?</div>
+    <div class="modal-sub">Your imported Google Calendar events will be tagged with your name so the family can see whose events are whose.</div>
+    <div id="who-syncing-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+    <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="document.getElementById('who-syncing-modal').classList.remove('open')">Cancel</button>
+  </div>
+</div>
 
 <!-- EVENT DETAIL MODAL -->
 <div class="modal-overlay" id="event-detail-modal">
@@ -1092,6 +1209,272 @@ function renderUpcoming(){
   });
   el.innerHTML=html+'</div>';
 }
+
+// ============================================================
+// WHO IS SYNCING — Modal prompt before each Google import
+// ============================================================
+let _pendingSyncMember = '';
+
+function openWhoSyncingModal() {
+  if (!googleAccessToken) {
+    if (window._googleTokenClient) window._googleTokenClient.requestAccessToken();
+    else showToast('⚠️ Please sign in to Google first');
+    return;
+  }
+  const list = document.getElementById('who-syncing-list');
+  list.innerHTML = state.members.map(m => `
+    <button class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;padding:12px 16px;font-size:14px" onclick="confirmWhoSyncing('${m.name}')">
+      <span style="font-size:24px">${m.avatar}</span>
+      <span>${m.name}</span>
+    </button>`).join('');
+  document.getElementById('who-syncing-modal').classList.add('open');
+}
+
+function confirmWhoSyncing(memberName) {
+  _pendingSyncMember = memberName;
+  document.getElementById('who-syncing-modal').classList.remove('open');
+  fetchGoogleEvents();
+}
+
+function importICS(input) {
+  const file = input.files[0]; if (!file) return;
+  const status = document.getElementById('ics-status');
+  status.textContent = 'Reading file…';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const events = parseICS(e.target.result);
+      if (!events.length) { status.textContent = '⚠️ No events found in file.'; return; }
+      let added = 0, skipped = 0;
+      events.forEach(ev => {
+        // Deduplicate by title+date
+        const exists = (state.calEvents||[]).some(x => x.title===ev.title && x.date===ev.date);
+        if (exists) { skipped++; return; }
+        if (!state.calEvents) state.calEvents = [];
+        state.calEvents.push(ev);
+        added++;
+      });
+      saveToFirebase(); renderCalendar(); renderDayEvents(); renderUpcoming();
+      status.textContent = `✅ Imported ${added} event(s)${skipped?' ('+skipped+' duplicates skipped)':''}.`;
+      showToast(`✅ Imported ${added} Apple Calendar event(s)!`);
+    } catch(err) {
+      status.textContent = '❌ Could not read file. Make sure it is a valid .ics file.';
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+  input.value = ''; // reset so same file can be re-imported if needed
+}
+
+function parseICS(text) {
+  const events = [];
+  // Split into VEVENT blocks
+  const blocks = text.split('BEGIN:VEVENT');
+  blocks.slice(1).forEach(block => {
+    const get = (key) => {
+      // handles folded lines (lines starting with space are continuations)
+      const unfolded = block.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
+      const lines = unfolded.split(/\r?\n/);
+      for (const line of lines) {
+        // Match KEY, KEY;PARAMS=...: VALUE
+        const m = line.match(new RegExp('^' + key + '(?:;[^:]*)?:(.+)$', 'i'));
+        if (m) return m[1].trim();
+      }
+      return '';
+    };
+
+    const summary = get('SUMMARY').replace(/\\,/g,',').replace(/\\n/g,' ').replace(/\\;/g,';');
+    const dtstart = get('DTSTART');
+    const description = get('DESCRIPTION').replace(/\\n/g,' ').replace(/\\,/g,',').slice(0,200);
+
+    if (!summary || !dtstart) return;
+
+    // Parse date — handle YYYYMMDD and YYYYMMDDTHHMMSS and UTC Z variants
+    let dateKey = '', timeStr = '';
+    const datePart = dtstart.replace(/Z$/,'');
+    if (datePart.length >= 8) {
+      const y = datePart.slice(0,4);
+      const mo = datePart.slice(4,6);
+      const d = datePart.slice(6,8);
+      dateKey = `${y}-${mo}-${d}`;
+      if (datePart.length >= 15) {
+        // Has time component
+        const h = parseInt(datePart.slice(9,11));
+        const min = datePart.slice(11,13);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        timeStr = `${h12}:${min} ${ampm}`;
+      }
+    }
+
+    if (!dateKey) return;
+
+    // Skip events in the past (more than 30 days ago)
+    const evDate = new Date(dateKey + 'T00:00:00');
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+    if (evDate < cutoff) return;
+
+    events.push({
+      id: Date.now() + Math.random(),
+      date: dateKey,
+      title: summary,
+      time: timeStr,
+      cat: 'general',
+      member: '',
+      note: description || '',
+      source: 'apple'
+    });
+  });
+  return events;
+}
+
+// ============================================================
+// GOOGLE CALENDAR — OAUTH IMPORT
+// ============================================================
+let googleAccessToken = null;
+
+// Load saved client ID from localStorage
+function loadGoogleClientId() {
+  const saved = localStorage.getItem('hm_google_client_id');
+  if (saved && saved !== 'PASTE_YOUR_GOOGLE_CLIENT_ID_HERE') {
+    // Inject into the data-client_id attribute and reload GIS
+    const el = document.getElementById('g_id_onload');
+    if (el) el.setAttribute('data-client_id', saved);
+    document.getElementById('google-setup-note').style.display = 'none';
+    loadGoogleIdentityScript(saved);
+  }
+}
+
+function loadGoogleIdentityScript(clientId) {
+  if (document.getElementById('gis-script')) return;
+  const s = document.createElement('script');
+  s.id = 'gis-script';
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.async = true; s.defer = true;
+  s.onload = () => {
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: onGoogleSignIn,
+      auto_select: false,
+    });
+    // Also init the token client for Calendar API access
+    window._googleTokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/calendar.readonly',
+      callback: onGoogleToken,
+    });
+    window.google.accounts.id.renderButton(
+      document.querySelector('.g_id_signin'),
+      { theme:'outline', size:'large', text:'signin_with' }
+    );
+  };
+  document.head.appendChild(s);
+}
+
+function showGoogleSetup() {
+  document.getElementById('google-setup-modal').classList.add('open');
+}
+
+function saveGoogleClientId() {
+  const val = document.getElementById('google-client-id-input').value.trim();
+  if (!val) return;
+  localStorage.setItem('hm_google_client_id', val);
+  document.getElementById('google-setup-modal').classList.remove('open');
+  document.getElementById('google-setup-note').style.display = 'none';
+  loadGoogleIdentityScript(val);
+  showToast('✅ Google Client ID saved! Click the Sign in button.');
+}
+
+function onGoogleSignIn(response) {
+  // Decode JWT to get user info
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  document.getElementById('google-avatar').src = payload.picture;
+  document.getElementById('google-user-name').textContent = payload.name;
+  document.getElementById('g-signin-btn-wrap').style.display = 'none';
+  document.getElementById('google-signed-in').style.display = '';
+  document.getElementById('google-setup-note').style.display = 'none';
+  // Request Calendar access token
+  if (window._googleTokenClient) window._googleTokenClient.requestAccessToken();
+}
+
+function onGoogleToken(tokenResponse) {
+  googleAccessToken = tokenResponse.access_token;
+  document.getElementById('google-import-status').textContent = '✅ Connected to Google Calendar. Tap Import Events!';
+}
+
+function googleSignOut() {
+  googleAccessToken = null;
+  document.getElementById('g-signin-btn-wrap').style.display = '';
+  document.getElementById('google-signed-in').style.display = 'none';
+  document.getElementById('google-import-status').textContent = '';
+  if (window.google) window.google.accounts.id.disableAutoSelect();
+}
+
+async function fetchGoogleEvents() {
+  if (!googleAccessToken) {
+    if (window._googleTokenClient) window._googleTokenClient.requestAccessToken();
+    else showToast('⚠️ Please sign in to Google first');
+    return;
+  }
+  const statusEl = document.getElementById('google-import-status');
+  statusEl.textContent = 'Fetching events…';
+  const days = parseInt(document.getElementById('google-days-select').value) || 30;
+  const now = new Date().toISOString();
+  const end = new Date(Date.now() + days*24*60*60*1000).toISOString();
+  const thisMember = _pendingSyncMember; // set by confirmWhoSyncing()
+
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&timeMax=${end}&singleEvents=true&orderBy=startTime&maxResults=250`,
+      { headers: { Authorization: 'Bearer ' + googleAccessToken } }
+    );
+    if (!res.ok) { statusEl.textContent = '❌ Error fetching events. Token may have expired — sign in again.'; googleAccessToken=null; return; }
+    const data = await res.json();
+    const items = data.items || [];
+    let added = 0, skipped = 0;
+    items.forEach(item => {
+      if (item.status === 'cancelled') return;
+      const title = item.summary || '(No title)';
+      const startRaw = item.start?.dateTime || item.start?.date || '';
+      if (!startRaw) return;
+      const dateKey = startRaw.slice(0,10);
+      let timeStr = '';
+      if (item.start?.dateTime) {
+        const d = new Date(item.start.dateTime);
+        const h = d.getHours(), min = String(d.getMinutes()).padStart(2,'0');
+        const ampm = h>=12?'PM':'AM';
+        timeStr = `${h%12||12}:${min} ${ampm}`;
+      }
+      let cat = 'general';
+      const tl = title.toLowerCase();
+      if (/doctor|dentist|appt|appointment|hospital|clinic|dr\./i.test(tl)) cat='appointment';
+      else if (/school|class|homework|pick.?up|drop.?off|pta|teacher/i.test(tl)) cat='school';
+      else if (/work|meeting|call|zoom|teams|conference|standup/i.test(tl)) cat='work';
+      else if (/soccer|game|practice|sport|gym|workout|recital|dance/i.test(tl)) cat='activity';
+      else if (/party|birthday|dinner|lunch|friend|visit|happy hour/i.test(tl)) cat='social';
+      else if (/flight|hotel|trip|travel|vacation|airport/i.test(tl)) cat='travel';
+
+      const exists = (state.calEvents||[]).some(x=>x.title===title&&x.date===dateKey&&x.member===(thisMember||''));
+      if (exists) { skipped++; return; }
+      if (!state.calEvents) state.calEvents=[];
+      state.calEvents.push({
+        id: Date.now()+Math.random(), date:dateKey, title, time:timeStr,
+        cat, member: thisMember || '', note:item.description||'', source:'google'
+      });
+      added++;
+    });
+    saveToFirebase(); renderCalendar(); renderDayEvents(); renderUpcoming();
+    const tagMsg = thisMember ? ` — tagged as ${thisMember}` : '';
+    statusEl.textContent = `✅ Imported ${added} event(s)${skipped?' ('+skipped+' already existed)':''}${tagMsg}.`;
+    showToast(`✅ Imported ${added} Google Calendar event(s)!`);
+  } catch(err) {
+    statusEl.textContent = '❌ Network error. Check your connection.';
+    console.error(err);
+  }
+}
+
+// Init Google client ID on load
+window.addEventListener('load', loadGoogleClientId);
 </script>
 </body>
 </html>
