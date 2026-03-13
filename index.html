@@ -406,9 +406,7 @@ function setSyncIndicator(saving) {
                 </div>
                 <div id="google-import-status" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
               </div>
-              <div id="google-setup-note" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:#1E40AF;margin-top:10px;line-height:1.6">
-                <strong>⚙️ One-time setup required:</strong> To enable Google sign-in, you need a free Google OAuth Client ID. <a href="#" onclick="showGoogleSetup();return false;" style="color:#1D4ED8;font-weight:700">Tap here for setup instructions</a>.
-              </div>
+              <div id="google-setup-note" style="display:none"></div>
             </div>
           </div>
 
@@ -1473,8 +1471,12 @@ async function fetchGoogleEvents() {
   }
 }
 
-// Init Google client ID on load
-window.addEventListener('load', loadGoogleClientId);
+// Init Google client ID on load — hardcoded so all family members work automatically
+window.addEventListener('load', function() {
+  const hardcodedClientId = '1037266698566-vh7iqjkekonl80ehasfgeq0vp12tttg5.apps.googleusercontent.com';
+  localStorage.setItem('hm_google_client_id', hardcodedClientId);
+  loadGoogleClientId();
+});
 </script>
 </body>
 </html>
