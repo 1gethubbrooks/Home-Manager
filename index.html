@@ -1230,8 +1230,63 @@ function openWhoSyncingModal() {
 
 function confirmWhoSyncing(memberName) {
   _pendingSyncMember = memberName;
+  localStorage.setItem('hm_last_sync_member', memberName); // remember for auto-refresh
   document.getElementById('who-syncing-modal').classList.remove('open');
   fetchGoogleEvents();
+}
+
+// Silent background refresh — no toast, no modal, just quietly updates
+async function fetchGoogleEventsSilent() {
+  if (!googleAccessToken || !_pendingSyncMember) return;
+  try {
+    const days = 90; // always pull 90 days for background refresh
+    const now = new Date().toISOString();
+    const end = new Date(Date.now() + days*24*60*60*1000).toISOString();
+    const res = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&timeMax=${end}&singleEvents=true&orderBy=startTime&maxResults=250`,
+      { headers: { Authorization: 'Bearer ' + googleAccessToken } }
+    );
+    if (!res.ok) { googleAccessToken = null; return; }
+    const data = await res.json();
+    const items = data.items || [];
+    let changed = false;
+    items.forEach(item => {
+      if (item.status === 'cancelled') return;
+      const title = item.summary || '(No title)';
+      const startRaw = item.start?.dateTime || item.start?.date || '';
+      if (!startRaw) return;
+      const dateKey = startRaw.slice(0,10);
+      let timeStr = '';
+      if (item.start?.dateTime) {
+        const d = new Date(item.start.dateTime);
+        const h = d.getHours(), min = String(d.getMinutes()).padStart(2,'0');
+        timeStr = `${h%12||12}:${min} ${h>=12?'PM':'AM'}`;
+      }
+      let cat = 'general';
+      const tl = title.toLowerCase();
+      if (/doctor|dentist|appt|appointment|hospital|clinic|dr\./i.test(tl)) cat='appointment';
+      else if (/school|class|homework|pick.?up|drop.?off|pta|teacher/i.test(tl)) cat='school';
+      else if (/work|meeting|call|zoom|teams|conference|standup/i.test(tl)) cat='work';
+      else if (/soccer|game|practice|sport|gym|workout|recital|dance/i.test(tl)) cat='activity';
+      else if (/party|birthday|dinner|lunch|friend|visit|happy hour/i.test(tl)) cat='social';
+      else if (/flight|hotel|trip|travel|vacation|airport/i.test(tl)) cat='travel';
+      const exists = (state.calEvents||[]).some(x=>x.title===title&&x.date===dateKey&&x.member===_pendingSyncMember);
+      if (exists) return;
+      if (!state.calEvents) state.calEvents=[];
+      state.calEvents.push({
+        id: Date.now()+Math.random(), date:dateKey, title, time:timeStr,
+        cat, member:_pendingSyncMember, note:item.description||'', source:'google'
+      });
+      changed = true;
+    });
+    if (changed) {
+      saveToFirebase(); renderCalendar(); renderDayEvents(); renderUpcoming();
+      const statusEl = document.getElementById('google-import-status');
+      if (statusEl) statusEl.textContent = '✅ Calendar synced — ' + new Date().toLocaleTimeString();
+    }
+  } catch(err) {
+    console.log('Background Google sync error:', err);
+  }
 }
 
 function importICS(input) {
@@ -1397,7 +1452,25 @@ function onGoogleSignIn(response) {
 
 function onGoogleToken(tokenResponse) {
   googleAccessToken = tokenResponse.access_token;
-  document.getElementById('google-import-status').textContent = '✅ Connected to Google Calendar. Tap Import Events!';
+  const statusEl = document.getElementById('google-import-status');
+  if (statusEl) statusEl.textContent = '✅ Connected — syncing your calendar…';
+  // Auto-refresh immediately on sign in / token refresh
+  if (_pendingSyncMember) {
+    fetchGoogleEvents();
+  } else {
+    // Silent background refresh — use last known member name
+    const lastMember = localStorage.getItem('hm_last_sync_member') || '';
+    _pendingSyncMember = lastMember;
+    fetchGoogleEventsSilent();
+  }
+  // Set up periodic auto-refresh every 30 minutes
+  if (window._googleRefreshTimer) clearInterval(window._googleRefreshTimer);
+  window._googleRefreshTimer = setInterval(() => {
+    if (googleAccessToken) {
+      _pendingSyncMember = localStorage.getItem('hm_last_sync_member') || '';
+      fetchGoogleEventsSilent();
+    }
+  }, 30 * 60 * 1000);
 }
 
 function googleSignOut() {
@@ -1470,6 +1543,14 @@ async function fetchGoogleEvents() {
     console.error(err);
   }
 }
+
+// Auto-refresh Google Calendar when user returns to the app
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && googleAccessToken) {
+    _pendingSyncMember = localStorage.getItem('hm_last_sync_member') || '';
+    if (_pendingSyncMember) fetchGoogleEventsSilent();
+  }
+});
 
 // Init Google client ID on load — hardcoded so all family members work automatically
 window.addEventListener('load', function() {
